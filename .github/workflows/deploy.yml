@@ -67,7 +67,7 @@ jobs:
           username:    ${{ secrets.FTP_USERNAME }}
           password:    ${{ secrets.FTP_PASSWORD }}
           port:        ${{ secrets.FTP_PORT }}
-          security:    loose 
+          security:    strict
           local-dir:   ./out/
           server-dir:  blogs/Blogs/out/
           dangerous-clean-slate: false
