@@ -50,7 +50,7 @@ jobs:
             set net:max-retries 3;
             set net:reconnect-interval-base 5;
             open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }};
-            mirror -R --delete --verbose ./out/ blogs/Blogs/out/
+            mirror -R --delete --verbose --parallel=4 --use-cache --only-newer ./out/ blogs/Blogs/out/
           "
 
       - name: Deployment complete
