@@ -1,0 +1,83 @@
+# ================================================================
+#  .github/workflows/deploy.yml
+#  Place this file inside your blog repo at:
+#  blogs/Blogs/.github/workflows/deploy.yml
+#
+#  Triggers on every push to main.
+#  1. Installs deps & runs next build (static export → out/)
+#  2. FTP-syncs out/ to cPanel: blogs/Blogs/out/
+#
+#  Required GitHub Secrets (repo Settings → Secrets → Actions):
+#    FTP_SERVER    — your cPanel FTP hostname  e.g. ftp.cyberneurix.com
+#    FTP_USERNAME  — cPanel FTP username
+#    FTP_PASSWORD  — cPanel FTP password
+#    FTP_PORT      — usually 21 (or 22 for SFTP)
+# ================================================================
+
+name: Build & Deploy to cPanel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build then FTP Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Requires next.config.mjs to have:  output: 'export'
+      # Writes static files to out/
+      - name: Build Next.js static export
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Verify out/ directory exists
+        run: |
+          if [ ! -d "out" ]; then
+            echo "ERROR: out/ not found. Ensure next.config.mjs has output: 'export'"
+            exit 1
+          fi
+          echo "Build output size: $(du -sh out/)"
+          echo "Files at root of out/:"
+          ls out/
+
+      # Syncs ./out/ to blogs/Blogs/out/ on cPanel via FTP
+      # Only uploads changed files — does not delete remote files
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server:      ${{ secrets.FTP_SERVER }}
+          username:    ${{ secrets.FTP_USERNAME }}
+          password:    ${{ secrets.FTP_PASSWORD }}
+          port:        ${{ secrets.FTP_PORT }}
+          local-dir:   ./out/
+          server-dir:  blogs/Blogs/out/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.next/**
+
+      - name: Deployment complete
+        if: success()
+        run: |
+          echo "Deployed out/ to cPanel blogs/Blogs/out/"
+          echo "Live at https://blogs.cyberneurix.com"
