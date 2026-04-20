@@ -1,0 +1,54 @@
+# ============================================================
+# CyberNeurix Blogs Subdomain — blogs.cyberneurix.com
+# .htaccess — Optimized for Next.js Static Export
+# ============================================================
+
+RewriteEngine On
+RewriteBase /
+
+# ── 1. SSL & WWW REDIRECT ──
+# Ensure HTTPS and non-WWW
+RewriteCond %{HTTPS} off [OR]
+RewriteCond %{HTTP_HOST} ^www\.blogs\.cyberneurix\.com [NC]
+RewriteRule ^(.*)$ https://blogs.cyberneurix.com/$1 [L,R=301]
+
+# ── 2. NEXT.JS STATIC ROUTING (TrailingSlash: true) ──
+# This handles the mapping of /blog/slug to /blog/slug/index.html
+# First, check if a file exists with .html extension
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# Then, handle directory-style requests mapping to index.html
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.*)$ $1/index.html [L]
+
+# Handle links without trails that are meant to be directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.*[^/])$ /$1/ [L,R=301]
+
+# ── 3. SECURITY HEADERS ──
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+</IfModule>
+
+# ── 4. SITEMAP CACHE & PERFORMANCE ──
+<Files "sitemap.xml">
+  Header set Cache-Control "public, max-age=86400"
+</Files>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+    ExpiresByType text/html "access plus 1 hour"
+</IfModule>
+
+# ── 5. CUSTOM 404 ──
+ErrorDocument 404 /404.html
