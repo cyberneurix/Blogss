@@ -61,23 +61,17 @@ jobs:
       # Syncs ./out/ to blogs/Blogs/out/ on cPanel via FTP
       # Only uploads changed files — does not delete remote files
       - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server:      ${{ secrets.FTP_SERVER }}
-          username:    ${{ secrets.FTP_USERNAME }}
-          password:    ${{ secrets.FTP_PASSWORD }}
-          port:        ${{ secrets.FTP_PORT }}
-          security:    strict
-          local-dir:   ./out/
-          server-dir:  blogs/Blogs/out/
-          dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/.next/**
+        run: |
+          sudo apt-get install -y lftp
+          lftp -c "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate false;
+            open -u ${{ secrets.FTP_USERNAME }},${{ secrets.FTP_PASSWORD }} ${{ secrets.FTP_SERVER }};
+            mirror -R --delete --verbose ./out/ blogs/Blogs/out/
+          "
 
-      - name: Deployment complete
+     - name: Deployment complete
         if: success()
         run: |
           echo "Deployed out/ to cPanel blogs/Blogs/out/"
